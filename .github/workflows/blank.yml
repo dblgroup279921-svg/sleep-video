@@ -11,30 +11,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ১. প্রথমে জিপ ফাইলটি আনজিপ করে সব ফাইল বের করা
+      - name: Unzip Project Files
+        run: |
+          unzip -o sleep-video.zip
+
+      # ২. Node.js সেটআপ করা (লক ফাইল ক্যাশ ছাড়া)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
+      # ৩. প্রয়োজনীয় প্যাকেজ এবং ব্রাউজার ইনস্টল করা
       - name: Install Remotion Dependencies and Browser
         run: |
-          # জিপ ফাইলটি আনজিপ করা
-          unzip -o sleep-video.zip
-          
-          # প্রয়োজনীয় প্যাকেজ ইনস্টল করা
           npm install
-          
-          # Remotion এর জন্য প্রয়োজনীয় ব্রাউজার ইনস্টল করা
           npx remotion browser ensure
 
+      # ৪. ভিডিও রেন্ডার করা
       - name: Render Video
         run: |
-          # npx remotion render <entry-file> <composition-id> <output-path>
-          # সাধারণত entry file হয় Root.tsx অথবা Main.tsx এবং composition id দেখতে package.json চেক করতে হয়।
-          # আমরা ডিফল্ট হিসেবে main কম্পোজিশন ট্রাই করছি:
-          npx remotion render Root.tsx main output.mp4 || npx remotion render Root.tsx sleep-video output.mp4 || npm run render
+          npx remotion render src/Root.tsx main output.mp4 || npx remotion render Root.tsx main output.mp4 || npm run render
 
+      # ৫. রেন্ডার হওয়া MP4 ফাইলটি আপলোড করা
       - name: Upload Rendered Video
         uses: actions/upload-artifact@v4
         with:
