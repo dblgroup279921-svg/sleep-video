@@ -16,35 +16,36 @@ jobs:
         with:
           node-version: 20
 
-      # ১. জিপ ফাইল আনজিপ করা এবং ফাইল চেক করা
+      # ১. জিপ ফাইল আনজিপ করা
       - name: Unzip Project Files
         run: |
           unzip -o sleep-video.zip -d project_files || true
-          ls -R project_files
 
-      # ২. সঠিক ডিরেক্টরিতে গিয়ে ডিপেন্ডেন্সি ইনস্টল ও রেন্ডার করা
+      # ২. সঠিক ফোল্ডারে গিয়ে ডিপেন্ডেন্সি ইনস্টল ও রেন্ডার করা
       - name: Install and Render
         run: |
-          # যদি জিপ ফাইলটি একটি ফোল্ডারের ভেতর ফাইলগুলো এক্সট্রাক্ট করে, তবে তার ভেতর ঢুকবে
+          # সঠিক ডিরেক্টরি সেট করা
           TARGET_DIR="project_files"
           if [ -d "project_files/sleep-video" ]; then
             TARGET_DIR="project_files/sleep-video"
-          elif [ -d "project_files/components" ]; then
-            TARGET_DIR="project_files"
           fi
           
           cd $TARGET_DIR
           
-          # প্যাকেজ ইনস্টল
+          # ডিপেন্ডেন্সি ইনস্টল ও ব্রাউজার সেটআপ
           npm install --legacy-peer-deps
           npx remotion browser ensure
           
-          # ভিডিও রেন্ডার করার চেষ্টা
-          npx remotion render Root.tsx main ../../output.mp4 || npx remotion render src/Root.tsx main ../../output.mp4 || npm run render
+          # package.json এর সঠিক স্ক্রিপ্ট রান করা
+          npm run render
           
-      # ৩. রেন্ডার হওয়া MP4 ফাইলটি আপলোড করা
+          # তৈরি হওয়া ভিডিওটি মূল ডিরেক্টরিতে নিয়ে আসা যাতে গিটহাব খুঁজে পায়
+          mv out/video.mp4 ../../output.mp4 || mv out/video.mp4 ../output.mp4 || true
+
+      # ৩. রেন্ডার হওয়া MP4 ভিডিওটি গিটহাবে আপলোড করা
       - name: Upload Rendered Video
         uses: actions/upload-artifact@v4
         with:
           name: remotion-mp4-video
           path: output.mp4
+          if-no-files-found: error
