@@ -1,39 +1,42 @@
-name: Render Video to MP4
+name: Render Remotion Video to MP4
 
 on:
-  workflow_dispatch: # এর মাধ্যমে আপনি অ্যাকশন ট্যাব থেকে ম্যানুয়ালি রান করতে পারবেন
+  workflow_dispatch:
 
 jobs:
-  build:
+  render:
     runs-on: ubuntu-latest
 
     steps:
-      # ১. রিপোজিটরির ফাইলগুলো রানারে নিয়ে আসা
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ২. রানারে FFmpeg ইনস্টল করা
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
 
-      # ৩. জিপ ফাইল আনজিপ করা এবং MP4 রেন্ডার করা
-      - name: Unzip and Render MP4
+      - name: Install Remotion Dependencies and Browser
         run: |
-          # জিপ ফাইল আনজিপ করা
-          unzip sleep-video.zip
+          # জিপ ফাইলটি আনজিপ করা
+          unzip -o sleep-video.zip
           
-          # আপনার ফাইলের ধরন অনুযায়ী নিচের যেকোনো একটি কমান্ড ব্যবহার করুন:
-          # অপশন এ (যদি ছবির সিরিজ থাকে, যেমন img001.png, img002.png):
-          ffmpeg -framerate 30 -i img%03d.png -c:v libx264 -pix_fmt yuv420p output.mp4
+          # প্রয়োজনীয় প্যাকেজ ইনস্টল করা
+          npm install
           
-          # অথবা অপশন বি (যদি অন্য ফরম্যাটের ভিডিওকে mp4 করতে চান):
-          # ffmpeg -i input_video.mov -vcodec libx264 -acodec aac output.mp4
+          # Remotion এর জন্য প্রয়োজনীয় ব্রাউজার ইনস্টল করা
+          npx remotion browser ensure
 
-      # ৪. রেন্ডার হওয়া MP4 ফাইলটি গিটহাব থেকে ডাউনলোড করার ব্যবস্থা করা
+      - name: Render Video
+        run: |
+          # npx remotion render <entry-file> <composition-id> <output-path>
+          # সাধারণত entry file হয় Root.tsx অথবা Main.tsx এবং composition id দেখতে package.json চেক করতে হয়।
+          # আমরা ডিফল্ট হিসেবে main কম্পোজিশন ট্রাই করছি:
+          npx remotion render Root.tsx main output.mp4 || npx remotion render Root.tsx sleep-video output.mp4 || npm run render
+
       - name: Upload Rendered Video
         uses: actions/upload-artifact@v4
         with:
-          name: rendered-mp4-video
+          name: remotion-mp4-video
           path: output.mp4
