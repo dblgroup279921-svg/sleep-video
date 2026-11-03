@@ -11,29 +11,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ১. প্রথমে জিপ ফাইলটি আনজিপ করে সব ফাইল বের করা
-      - name: Unzip Project Files
-        run: |
-          unzip -o sleep-video.zip
-
-      # ২. Node.js সেটআপ করা (লক ফাইল ক্যাশ ছাড়া)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # ৩. প্রয়োজনীয় প্যাকেজ এবং ব্রাউজার ইনস্টল করা
-      - name: Install Remotion Dependencies and Browser
+      # ১. জিপ ফাইল আনজিপ করা এবং ফাইল চেক করা
+      - name: Unzip Project Files
         run: |
-          npm install
+          unzip -o sleep-video.zip -d project_files || true
+          ls -R project_files
+
+      # ২. সঠিক ডিরেক্টরিতে গিয়ে ডিপেন্ডেন্সি ইনস্টল ও রেন্ডার করা
+      - name: Install and Render
+        run: |
+          # যদি জিপ ফাইলটি একটি ফোল্ডারের ভেতর ফাইলগুলো এক্সট্রাক্ট করে, তবে তার ভেতর ঢুকবে
+          TARGET_DIR="project_files"
+          if [ -d "project_files/sleep-video" ]; then
+            TARGET_DIR="project_files/sleep-video"
+          elif [ -d "project_files/components" ]; then
+            TARGET_DIR="project_files"
+          fi
+          
+          cd $TARGET_DIR
+          
+          # প্যাকেজ ইনস্টল
+          npm install --legacy-peer-deps
           npx remotion browser ensure
-
-      # ৪. ভিডিও রেন্ডার করা
-      - name: Render Video
-        run: |
-          npx remotion render src/Root.tsx main output.mp4 || npx remotion render Root.tsx main output.mp4 || npm run render
-
-      # ৫. রেন্ডার হওয়া MP4 ফাইলটি আপলোড করা
+          
+          # ভিডিও রেন্ডার করার চেষ্টা
+          npx remotion render Root.tsx main ../../output.mp4 || npx remotion render src/Root.tsx main ../../output.mp4 || npm run render
+          
+      # ৩. রেন্ডার হওয়া MP4 ফাইলটি আপলোড করা
       - name: Upload Rendered Video
         uses: actions/upload-artifact@v4
         with:
